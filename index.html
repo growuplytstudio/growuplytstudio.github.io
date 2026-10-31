@@ -368,6 +368,21 @@ footer .brand { justify-content: center; color: var(--ink); margin-bottom: 8px; 
 @media (prefers-reduced-motion: reduce) { .dtrack { animation: none !important; } }
 /* very small phones: one service card per row so nothing goes outside the screen */
 @media (max-width: 359px) { .grid-services { grid-template-columns: 1fr; } }
+/* floating Instagram + Gmail buttons (stacked above the WhatsApp button) */
+.fab.fab-ig { bottom: calc(84px + env(safe-area-inset-bottom)); color: #fff;
+    background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285aeb 90%);
+    border: 1px solid rgba(255,255,255,.5); box-shadow: 0 12px 24px rgba(214,36,159,.38), inset 0 1px 0 rgba(255,255,255,.45); }
+.fab.fab-mail { bottom: calc(152px + env(safe-area-inset-bottom)); background: #fff;
+    border: 1px solid rgba(0,0,0,.08); box-shadow: 0 12px 24px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.9); }
+.fab.fab-ig svg { width: 28px; height: 28px; }
+.fab.fab-mail svg { width: 30px; height: 30px; }
+/* colourful contact icons */
+.socials a.soc-instagram { color: #fff; border-color: rgba(255,255,255,.6); background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285aeb 90%); }
+.socials a.soc-youtube { color: #fff; background: #ff0000; border-color: rgba(255,255,255,.6); }
+.socials a.soc-facebook { color: #fff; background: #1877f2; border-color: rgba(255,255,255,.6); }
+.socials a.soc-mail { background: #fff; }
+.socials a.soc-mail svg { width: 24px; height: 24px; }
+.fab[hidden] { display: none; }
 </style>
 </head>
 
@@ -512,6 +527,8 @@ footer .brand { justify-content: center; color: var(--ink); margin-bottom: 8px; 
 </footer>
 
 <a class="fab" data-wa href="#contact" aria-label="Chat on WhatsApp"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg></a>
+<a class="fab fab-ig" id="fab-ig" href="#contact" target="_blank" rel="noopener" aria-label="Instagram" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg></a>
+<a class="fab fab-mail" id="fab-mail" href="#contact" aria-label="Email us" hidden><svg viewBox="52 42 88 66" aria-hidden="true"><path fill="#4285f4" d="M58 108h14V74L52 59v43c0 3.32 2.69 6 6 6"/><path fill="#34a853" d="M120 108h14c3.32 0 6-2.69 6-6V59l-20 15"/><path fill="#fbbc04" d="M120 48v26l20-15v-8c0-7.42-8.47-11.65-14.4-7.2"/><path fill="#ea4335" d="M72 74V48l24 18 24-18v26L96 92"/><path fill="#c5221f" d="M52 51v8l20 15V48l-5.6-4.2c-5.94-4.45-14.4-.22-14.4 7.2"/></svg></a>
 <div class="toast glass" id="toast" role="status"></div>
 
 <script src="manifest.js"></script>
@@ -530,8 +547,8 @@ const SITE = {
     whatsapp: "919507839015",
     // Message that is already typed when people tap "Chat on WhatsApp"
     whatsappMessage: "Hi Growuplyt Studio! I want to know more about your video editing.",
-    email: "",        // example: "hello@yourmail.com"
-    instagram: "",    // full link, example: "https://instagram.com/yourname"
+    email: "growuplyt@gmail.com",        // example: "hello@yourmail.com"
+    instagram: "https://www.instagram.com/growuplytstudio",    // full link, example: "https://instagram.com/yourname"
     youtube: "",      // full link (only an icon, videos still play on this website)
     facebook: ""      // full link
 };
@@ -617,11 +634,27 @@ const PROCESS = [
     }).join('');
 
     /* ---------- Contact form dropdown + socials ---------- */
+    var GMAIL_SVG = '<svg viewBox="52 42 88 66" aria-hidden="true"><path fill="#4285f4" d="M58 108h14V74L52 59v43c0 3.32 2.69 6 6 6"/><path fill="#34a853" d="M120 108h14c3.32 0 6-2.69 6-6V59l-20 15"/><path fill="#fbbc04" d="M120 48v26l20-15v-8c0-7.42-8.47-11.65-14.4-7.2"/><path fill="#ea4335" d="M72 74V48l24 18 24-18v26L96 92"/><path fill="#c5221f" d="M52 51v8l20 15V48l-5.6-4.2c-5.94-4.45-14.4-.22-14.4 7.2"/></svg>';
+    var isDesktop = !!(window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches);
+    var MAIL_SUBJECT = 'Hi Growuplyt Studio';
+    function mailHref() {                                    // computer: open Gmail compose in a new tab; phone: open the mail app
+        if (!SITE.email) return '';
+        return isDesktop
+            ? 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(SITE.email) + '&su=' + encodeURIComponent(MAIL_SUBJECT)
+            : 'mailto:' + SITE.email + '?subject=' + encodeURIComponent(MAIL_SUBJECT);
+    }
     var soc = [['instagram', SITE.instagram, 'Instagram'], ['youtube', SITE.youtube, 'YouTube'], ['facebook', SITE.facebook, 'Facebook'],
-               ['mail', SITE.email ? 'mailto:' + SITE.email : '', 'Email']];
+               ['mail', mailHref(), 'Email']];
     $('#socials').innerHTML = soc.filter(function (x) { return x[1]; }).map(function (x) {
-        return '<a href="' + esc(x[1]) + '" target="_blank" rel="noopener" aria-label="' + x[2] + '">' + ICONS[x[0]] + '</a>';
+        return '<a class="soc-' + x[0] + '" href="' + esc(x[1]) + '" target="_blank" rel="noopener" aria-label="' + x[2] + '">' + (x[0] === 'mail' ? GMAIL_SVG : ICONS[x[0]]) + '</a>';
     }).join('');
+
+    /* ---------- Floating Instagram + Email buttons ---------- */
+    (function () {
+        var ig = $('#fab-ig'), ml = $('#fab-mail');
+        if (SITE.instagram) { ig.href = SITE.instagram; ig.hidden = false; }
+        if (SITE.email) { ml.href = mailHref(); ml.target = '_blank'; ml.rel = 'noopener'; ml.hidden = false; }
+    })();
 
     /* ---------- Portfolio: Shorts, Long videos, Designs ---------- */
     var P = (typeof PORTFOLIO !== 'undefined') ? PORTFOLIO : { shorts: [], long: [], designs: [] };
@@ -854,11 +887,22 @@ const PROCESS = [
         }
         function settle() {                                      // keep the place where the person left the row, then slide again
             if (!P) { start(0); return; }
-            var x = el.scrollLeft - tx(); x = ((x % P) + P) % P;
-            start(x / P);
+            var x = el.scrollLeft - tx();                        // where the person is looking, in the loop
+            var ph = (((x - P / 2) % P) + P) % P;                // start() puts the row at P/2, so slide from the matching point
+            start(ph / P);
         }
-        function grab() { hold = true; track.classList.add('hold'); }
-        function drop() { if (!hold) return; hold = false; track.classList.remove('hold'); settle(); }
+        var st;
+        function grab() { clearTimeout(st); hold = true; track.classList.add('hold'); }
+        function drop() {                                        // wait until the finger/mouse swipe has fully stopped, then slide again
+            if (!hold) return; clearTimeout(st);
+            var last = el.scrollLeft;
+            (function wait() {
+                st = setTimeout(function () {
+                    if (Math.abs(el.scrollLeft - last) > 0.5) { last = el.scrollLeft; wait(); return; }
+                    hold = false; track.classList.remove('hold'); settle();
+                }, 140);
+            })();
+        }
         el.addEventListener('scroll', function () {              // dragged far: jump one copy, nobody sees it
             if (!hold || !P) return;
             var o = el.scrollLeft - tx();
