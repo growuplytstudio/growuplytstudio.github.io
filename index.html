@@ -332,7 +332,7 @@ footer .brand { justify-content: center; color: var(--ink); margin-bottom: 8px; 
 .vcard::after { content: ""; position: absolute; inset: 0; background: rgba(2,17,12,.30); opacity: 1; transition: opacity .35s ease; pointer-events: none; }
 .vcard.active { transform: scale(1.16); z-index: 2; border-color: rgba(91,208,140,.7); box-shadow: 0 18px 40px rgba(0,0,0,.45), 0 0 0 3px rgba(42,157,92,.28); }
 .vcard.active::after { opacity: 0; }
-.vcard video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #000; pointer-events: none; }
+.vcard video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: transparent; pointer-events: none; }
 .snd { z-index: 3; position: absolute; right: 10px; bottom: 10px; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; color: #fff; background: rgba(2,17,12,.6); border: 1px solid rgba(255,255,255,.25); opacity: 0; transition: opacity .25s ease; pointer-events: none; }
 .vcard.active .snd { opacity: 1; }
 .snd svg { width: 18px; height: 18px; }
@@ -366,6 +366,8 @@ footer .brand { justify-content: center; color: var(--ink); margin-bottom: 8px; 
 .dtrack.hold, .dtrack.off { animation-play-state: paused !important; }
 @keyframes dmq { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(calc(-1 * var(--p, 1000px)), 0, 0); } }
 @media (prefers-reduced-motion: reduce) { .dtrack { animation: none !important; } }
+/* very small phones: one service card per row so nothing goes outside the screen */
+@media (max-width: 359px) { .grid-services { grid-template-columns: 1fr; } }
 </style>
 </head>
 
@@ -678,7 +680,7 @@ const PROCESS = [
        - videos far away are unloaded, the ones coming next are prepared early
        - square or wide videos keep their real shape                                  */
     var PHONE = window.matchMedia('(max-width: 719px)').matches;
-    var CAPMAX = PHONE ? 4 : 7, CAP = PHONE ? 3 : 4, capTry = CAPMAX;
+    var CAPMAX = PHONE ? 3 : 6, CAP = PHONE ? 2 : 3, capTry = CAPMAX;
     var SAVE = !!(navigator.connection && navigator.connection.saveData);
     var HAS_IO = ('IntersectionObserver' in window);
     var RATIO_HINT = { "short-02.mp4": [720, 800], "short-05.mp4": [720, 1270], "short-06.mp4": [720, 720], "short-07.mp4": [720, 720], "short-09.mp4": [720, 720] };
@@ -717,23 +719,28 @@ const PROCESS = [
     });
 
 
-    /* Smart limit: if the device drops frames, play one video less; if it stays smooth, allow one more */
+    /* Smart limit: play one video less if the device drops frames or the video is still loading, one more while it stays smooth */
     (function () {
-        var seen = new Map(), calm = 0;
+        var seen = new Map(), calm = 0, slow = 0;
         setInterval(function () {
             if (document.hidden) return;
-            var tot = 0, drop = 0, n = 0;
+            var tot = 0, drop = 0, n = 0, wait = 0, live = 0;
             vids.forEach(function (o) {
-                var v = o.v; if (v.paused || !v.getVideoPlaybackQuality) { seen.delete(v); return; }
+                var v = o.v;
+                if (v.paused || !v.getAttribute('src')) { seen.delete(v); return; }
+                live++;
+                if (!v.error && v.networkState === 2 && v.readyState < 3) wait++;   // still downloading: the network is busy
+                if (!v.getVideoPlaybackQuality) return;
                 var q = v.getVideoPlaybackQuality(), p = seen.get(v);
                 seen.set(v, { t: q.totalVideoFrames, d: q.droppedVideoFrames });
                 if (!p) return;                                  // first look at a new video: only note it
                 tot += q.totalVideoFrames - p.t; drop += q.droppedVideoFrames - p.d; n++;
             });
-            if (n < 2 || tot < 40) return;
-            var r = drop / tot;
-            if (r > 0.10) { calm = 0; if (CAP > 2) { CAP--; capTry = CAP; schedule(); } }
-            else if (r < 0.02) {
+            slow = wait ? slow + 1 : 0;
+            if (slow >= 2 && CAP > 1 && live > 1) { CAP--; slow = 0; calm = 0; schedule(); return; }
+            var r = (n >= 2 && tot >= 40) ? drop / tot : 0;  // frames dropped (needs 2+ videos playing to judge)
+            if (r > 0.10) { calm = 0; if (CAP > 2) { CAP--; capTry = CAP; schedule(); } return; }
+            if (!wait && r < 0.02) {
                 calm++;
                 if (CAP < capTry && calm >= 3) { CAP++; calm = 0; schedule(); }
                 else if (CAP >= capTry && capTry < CAPMAX && calm >= 20) { capTry++; calm = 0; }
@@ -809,7 +816,9 @@ const PROCESS = [
         }
         ['pointerdown', 'touchstart', 'wheel'].forEach(function (ev) { el.addEventListener(ev, function () { row.touched = true; }, { passive: true }); });
         row.cards.forEach(function (o) { o.v.addEventListener('loadedmetadata', placeStart); });
-        window.addEventListener('load', placeStart); window.addEventListener('resize', placeStart);
+        var lastW = window.innerWidth;
+        window.addEventListener('load', placeStart);
+        window.addEventListener('resize', function () { if (window.innerWidth !== lastW) { lastW = window.innerWidth; placeStart(); } });
         placeStart();
         if (HAS_IO) {
             new IntersectionObserver(function (es) {                   // the whole row near the screen?
@@ -825,11 +834,11 @@ const PROCESS = [
         var el = $('#row-designs'), blk = $('#blk-designs');
         if (!list.length) { blk.querySelector('.rowbox').innerHTML = '<div class="soon">Coming soon.</div>'; return; }
         var track = document.createElement('div'); track.className = 'dtrack'; el.appendChild(track);
-        [0, 1, 2].forEach(function (copy) {
+        [0, 1].forEach(function (copy) {
             list.forEach(function (d) {
                 var im = new Image(); im.src = 'designs/' + d.f; im.alt = copy ? '' : 'Design by Growuplyt Studio';
                 if (d.w && d.h) { im.width = d.w; im.height = d.h; }
-                im.loading = 'lazy'; im.decoding = 'async'; im.draggable = false; if (copy) im.setAttribute('aria-hidden', 'true');
+                im.loading = copy ? 'lazy' : 'eager'; im.decoding = 'async'; im.draggable = false; if (copy) im.setAttribute('aria-hidden', 'true');
                 track.appendChild(im);
             });
         });
@@ -837,8 +846,8 @@ const PROCESS = [
         var still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
         function tx() { var t = getComputedStyle(track).transform; return (t && t !== 'none') ? new DOMMatrix(t).m41 : 0; }
         function start(phase) {                                  // slide from this point (0 to 1) of one full loop
-            P = track.offsetWidth / 3; if (!P) return;
-            el.scrollLeft = P; if (still) return;                // start in the middle copy, so the row can go left and right
+            P = track.offsetWidth / 2; if (!P) return;
+            el.scrollLeft = P / 2; if (still) return;            // start half way, so the row can go left and right
             track.style.setProperty('--p', P + 'px');
             track.style.animation = 'none'; void track.offsetWidth;
             track.style.animation = 'dmq ' + (P / SPEED).toFixed(2) + 's linear ' + (-(phase * P / SPEED)).toFixed(2) + 's infinite';
@@ -850,6 +859,11 @@ const PROCESS = [
         }
         function grab() { hold = true; track.classList.add('hold'); }
         function drop() { if (!hold) return; hold = false; track.classList.remove('hold'); settle(); }
+        el.addEventListener('scroll', function () {              // dragged far: jump one copy, nobody sees it
+            if (!hold || !P) return;
+            var o = el.scrollLeft - tx();
+            if (o < 0.08 * P) el.scrollLeft += P; else if (o + el.clientWidth > 1.92 * P) el.scrollLeft -= P;
+        }, { passive: true });
         el.addEventListener('touchstart', grab, { passive: true });
         el.addEventListener('touchend', drop, { passive: true }); el.addEventListener('touchcancel', drop, { passive: true });
         el.addEventListener('pointerdown', function (e) { if (e.pointerType === 'mouse') grab(); });
