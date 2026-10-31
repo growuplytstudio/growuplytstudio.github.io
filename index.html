@@ -1,7 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+
 <meta charset="UTF-8">
+<!-- =====================================================================
+ CHANGE LOG  (everything changed so far on top of the first version)
+ Only THIS file (index.html) needs to be re-uploaded for these changes.
+ manifest.js, designs/ and videos/ were never touched.
+
+ 1. DESIGNS ROW (Graphic Designing) - jerk fix
+    The sliding row jumped half a loop forward/back after a tap, click or swipe.
+    Fix in buildDesigns(): settle() now restarts the slide from the exact place
+    where the person left it, and drop() waits until the swipe/momentum has fully
+    stopped before it restarts the slide.
+ 2. SITE settings at the top of the script: email = growuplyt@gmail.com,
+    instagram = https://www.instagram.com/growuplytstudio
+ 3. FLOATING CONTACT BUTTON (bottom right) - html id="fabdock", css ".fabdock/.fab-*"
+    One rounded-triangle button (cream/white glass, mint-green rim, like the logo tile)
+    with WhatsApp, Instagram and Gmail icons touching each other inside.
+    Animation: the button floats; every ~3 s the three icons shrink while turning
+    120 degrees and are full size again on arrival (keyframes fturn / fcounter / fpulse).
+    Tap = menu opens upwards (WhatsApp, Instagram, Email with labels). Closes on tap
+    outside, on the X, on Esc, or after choosing one. WhatsApp link still comes from
+    the [data-wa] code, Instagram/Email links come from SITE.
+ 4. EMAIL LINK - mailHref(): on a computer it opens Gmail compose in a new tab
+    (mailto: did nothing when no mail app was set); on phones it uses mailto:.
+    Used by the floating button and by the icon in the Contact section.
+ 5. CONTACT SECTION ICONS (#socials) are coloured: Instagram gradient, Gmail logo,
+    YouTube red, Facebook blue (css ".socials a.soc-...").
+ 6. VIDEO ROWS (Shorts Reels + Long Videos) - no big empty space at the ends:
+    .vrow side padding is small now (about 10% of card width + 12px) and
+    "justify-content: safe center" centres the row when all cards fit.
+    pickStart() was adjusted for this. Endless loop was NOT added (risk of lag/jerks).
+    Note: on very wide PC screens the very first/last card cannot reach the exact
+    centre; they play when tapped.
+ 7. PRICING PLANS were only discussed (not added). Idea: Starter / Growth / Pro cards
+    with a WhatsApp button each.
+ NOT changed: the slow video loading on phones (depends on video file size/hosting).
+ ===================================================================== -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Growuplyt Studio | Video Editing & Content Growth</title>
 <meta name="description" content="Growuplyt Studio is a creative team for video editing and content growth.">
@@ -320,7 +356,7 @@ footer .brand { justify-content: center; color: var(--ink); margin-bottom: 8px; 
     border: 1px solid rgba(255,255,255,.2); box-shadow: inset 0 2px 0 rgba(255,255,255,.25), inset 0 -14px 30px rgba(42,157,92,.10), 0 18px 40px rgba(0,0,0,.28); }
 .vrow, .drow { display: flex; gap: 14px; overflow-x: auto; overflow-y: hidden; position: relative; scrollbar-width: none; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
 .vrow::-webkit-scrollbar, .drow::-webkit-scrollbar { display: none; }
-.vrow { --cw: min(56vw, 230px); --ch: calc(var(--cw) * 16 / 9); scroll-snap-type: x mandatory; padding: 44px calc(50% - var(--cw) / 2) 48px; }
+.vrow { --cw: min(56vw, 230px); --ch: calc(var(--cw) * 16 / 9); scroll-snap-type: x mandatory; padding: 44px calc(var(--cw) * .1 + 12px) 48px; justify-content: safe center; }
 .vrow.long { --cw: min(72vw, 460px); --ch: calc(var(--cw) * 9 / 16); }
 .vcard {
     --r: .5625;
@@ -368,21 +404,53 @@ footer .brand { justify-content: center; color: var(--ink); margin-bottom: 8px; 
 @media (prefers-reduced-motion: reduce) { .dtrack { animation: none !important; } }
 /* very small phones: one service card per row so nothing goes outside the screen */
 @media (max-width: 359px) { .grid-services { grid-template-columns: 1fr; } }
-/* floating Instagram + Gmail buttons (stacked above the WhatsApp button) */
-.fab.fab-ig { bottom: calc(84px + env(safe-area-inset-bottom)); color: #fff;
-    background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285aeb 90%);
-    border: 1px solid rgba(255,255,255,.5); box-shadow: 0 12px 24px rgba(214,36,159,.38), inset 0 1px 0 rgba(255,255,255,.45); }
-.fab.fab-mail { bottom: calc(152px + env(safe-area-inset-bottom)); background: #fff;
-    border: 1px solid rgba(0,0,0,.08); box-shadow: 0 12px 24px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.9); }
-.fab.fab-ig svg { width: 28px; height: 28px; }
-.fab.fab-mail svg { width: 30px; height: 30px; }
+/* one floating contact button: three icons turning inside, tap to open WhatsApp / Instagram / Email upwards */
+.fabdock { position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); z-index: 60; }
+.fabdock [hidden] { display: none !important; }
+.fab-launch { position: relative; display: block; width: 66px; height: 62px; padding: 0; -webkit-tap-highlight-color: transparent; }
+.fab-launch .face { position: absolute; inset: 0; animation: ffloat 3.4s ease-in-out infinite; transition: transform .2s ease;
+    filter: drop-shadow(0 12px 14px rgba(20,56,42,.36)) drop-shadow(0 2px 3px rgba(20,56,42,.18)); }
+.fab-launch:active .face { transform: scale(.94); }
+@media (hover: hover) { .fab-launch:hover .face { transform: scale(1.06); } }
+.fab-launch .shape { position: absolute; inset: 0; width: 66px; height: 62px; }
+.fab-launch .orbit { position: absolute; inset: 0; transform-origin: 33px 35.33px; transition: opacity .25s ease, scale .3s ease; animation: fturn 9s ease-in-out infinite; }
+.fab-launch .mi { position: absolute; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-style: normal; color: #fff;
+    border: 1px solid rgba(255,255,255,.7); box-shadow: 0 2px 5px rgba(20,56,42,.25); animation: fcounter 9s ease-in-out infinite, fpulse 9s ease-in-out infinite; }
+.fab-launch .mi svg { display: block; width: 15px; height: 15px; }
+.fab-launch .m-mail svg { width: 18px; height: 18px; }
+.fab-launch .m-wa   { left: 18px; top: 3px;  background: linear-gradient(180deg, #3be37f, #128c7e); }
+.fab-launch .m-ig   { left: 33px; top: 29px; background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285aeb 90%); }
+.fab-launch .m-mail { left: 3px;  top: 29px; background: #fff; border-color: rgba(20,56,42,.14); }
+.fab-launch .x { position: absolute; inset: 0; padding-top: 7px; display: grid; place-items: center; color: #14382a; opacity: 0; transform: rotate(-90deg) scale(.5); transition: opacity .25s ease, transform .3s ease; }
+.fabdock.open .fab-launch .face { animation: none; }
+.fabdock.open .fab-launch .orbit, .fabdock.open .fab-launch .mi { animation-play-state: paused; }
+.fabdock.open .fab-launch .orbit { opacity: 0; scale: .4; }
+.fabdock.open .fab-launch .x { opacity: 1; transform: none; }
+.fab-menu { position: absolute; right: 4px; bottom: calc(100% + 12px); display: flex; flex-direction: column; align-items: flex-end; gap: 12px;
+    visibility: hidden; transition: visibility 0s linear .3s; }
+.fabdock.open .fab-menu { visibility: visible; transition-delay: 0s; }
+.fab-opt { display: flex; align-items: center; gap: 10px; opacity: 0; transform: translateY(26px) scale(.6); transform-origin: 100% 100%;
+    transition: opacity .22s ease, transform .35s cubic-bezier(.16,1,.3,1); -webkit-tap-highlight-color: transparent; }
+.fabdock.open .fab-opt { opacity: 1; transform: none; }
+.fabdock.open .o-wa { transition-delay: 0s; } .fabdock.open .o-ig { transition-delay: .06s; } .fabdock.open .o-mail { transition-delay: .12s; }
+.fab-opt .lbl { padding: 6px 12px; border-radius: 999px; background: rgba(255,255,255,.95); color: #14382a; font-size: 13px; font-weight: 700; box-shadow: 0 6px 16px rgba(0,0,0,.2); white-space: nowrap; }
+.fab-opt .ic { width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center; color: #fff; border: 1px solid rgba(255,255,255,.5); }
+.fab-opt .ic svg { display: block; }
+.fab-opt:active .ic { transform: scale(.94); }
+.o-wa .ic { background: linear-gradient(180deg, #3be37f 0%, #25d366 48%, #128c7e 100%); box-shadow: 0 12px 24px rgba(18,140,126,.42), inset 0 1px 0 rgba(255,255,255,.55); }
+.o-ig .ic { background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285aeb 90%); box-shadow: 0 12px 24px rgba(214,36,159,.38), inset 0 1px 0 rgba(255,255,255,.45); }
+.o-mail .ic { background: #fff; border-color: rgba(0,0,0,.08); box-shadow: 0 12px 24px rgba(0,0,0,.25); }
+@keyframes fturn { 0%, 22% { rotate: 0deg; } 33.33%, 55.33% { rotate: -120deg; } 66.66%, 88.66% { rotate: -240deg; } 100% { rotate: -360deg; } }
+@keyframes fcounter { 0%, 22% { rotate: 0deg; } 33.33%, 55.33% { rotate: 120deg; } 66.66%, 88.66% { rotate: 240deg; } 100% { rotate: 360deg; } }
+@keyframes fpulse { 0%, 22% { scale: 1; } 27.67% { scale: .72; } 33.33%, 55.33% { scale: 1; } 61% { scale: .72; } 66.66%, 88.66% { scale: 1; } 94.33% { scale: .72; } 100% { scale: 1; } }
+@keyframes ffloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+@media (prefers-reduced-motion: reduce) { .fab-launch .face, .fab-launch .orbit, .fab-launch .mi { animation: none; } .fab-opt { transition: opacity .1s; transform: none; } }
 /* colourful contact icons */
 .socials a.soc-instagram { color: #fff; border-color: rgba(255,255,255,.6); background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285aeb 90%); }
 .socials a.soc-youtube { color: #fff; background: #ff0000; border-color: rgba(255,255,255,.6); }
 .socials a.soc-facebook { color: #fff; background: #1877f2; border-color: rgba(255,255,255,.6); }
 .socials a.soc-mail { background: #fff; }
 .socials a.soc-mail svg { width: 24px; height: 24px; }
-.fab[hidden] { display: none; }
 </style>
 </head>
 
@@ -526,9 +594,24 @@ footer .brand { justify-content: center; color: var(--ink); margin-bottom: 8px; 
     </div>
 </footer>
 
-<a class="fab" data-wa href="#contact" aria-label="Chat on WhatsApp"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg></a>
-<a class="fab fab-ig" id="fab-ig" href="#contact" target="_blank" rel="noopener" aria-label="Instagram" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg></a>
-<a class="fab fab-mail" id="fab-mail" href="#contact" aria-label="Email us" hidden><svg viewBox="52 42 88 66" aria-hidden="true"><path fill="#4285f4" d="M58 108h14V74L52 59v43c0 3.32 2.69 6 6 6"/><path fill="#34a853" d="M120 108h14c3.32 0 6-2.69 6-6V59l-20 15"/><path fill="#fbbc04" d="M120 48v26l20-15v-8c0-7.42-8.47-11.65-14.4-7.2"/><path fill="#ea4335" d="M72 74V48l24 18 24-18v26L96 92"/><path fill="#c5221f" d="M52 51v8l20 15V48l-5.6-4.2c-5.94-4.45-14.4-.22-14.4 7.2"/></svg></a>
+<div class="fabdock" id="fabdock">
+    <div class="fab-menu" id="fab-menu">
+        <a class="fab-opt o-mail" id="fab-mail" href="#contact" target="_blank" rel="noopener" aria-label="Email us"><span class="lbl">Email</span><span class="ic"><svg width="30" height="30" viewBox="52 42 88 66" aria-hidden="true"><path fill="#4285f4" d="M58 108h14V74L52 59v43c0 3.32 2.69 6 6 6"/><path fill="#34a853" d="M120 108h14c3.32 0 6-2.69 6-6V59l-20 15"/><path fill="#fbbc04" d="M120 48v26l20-15v-8c0-7.42-8.47-11.65-14.4-7.2"/><path fill="#ea4335" d="M72 74V48l24 18 24-18v26L96 92"/><path fill="#c5221f" d="M52 51v8l20 15V48l-5.6-4.2c-5.94-4.45-14.4-.22-14.4 7.2"/></svg></span></a>
+        <a class="fab-opt o-ig" id="fab-ig" href="#contact" target="_blank" rel="noopener" aria-label="Instagram"><span class="lbl">Instagram</span><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="28" height="28"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg></span></a>
+        <a class="fab-opt o-wa" data-wa href="#contact" aria-label="Chat on WhatsApp"><span class="lbl">WhatsApp</span><span class="ic"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" width="28" height="28"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg></span></a>
+    </div>
+    <button class="fab-launch" id="fab-launch" type="button" aria-label="Contact us" aria-expanded="false" aria-controls="fab-menu">
+        <span class="face">
+            <svg class="shape" viewBox="0 0 66 62" aria-hidden="true"><defs><linearGradient id="fgrad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="66" y2="62"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#dff0e3"/></linearGradient></defs><polygon points="33,18 18,44 48,44" fill="#9fdcb7" stroke="#9fdcb7" stroke-width="36" stroke-linejoin="round"/><polygon points="33,18 18,44 48,44" fill="url(#fgrad)" stroke="url(#fgrad)" stroke-width="33" stroke-linejoin="round"/></svg>
+            <span class="orbit">
+                <i class="mi m-wa"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" width="13" height="13"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg></i>
+                <i class="mi m-ig" id="mi-ig"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="13" height="13"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg></i>
+                <i class="mi m-mail" id="mi-mail"><svg width="14" height="14" viewBox="52 42 88 66" aria-hidden="true"><path fill="#4285f4" d="M58 108h14V74L52 59v43c0 3.32 2.69 6 6 6"/><path fill="#34a853" d="M120 108h14c3.32 0 6-2.69 6-6V59l-20 15"/><path fill="#fbbc04" d="M120 48v26l20-15v-8c0-7.42-8.47-11.65-14.4-7.2"/><path fill="#ea4335" d="M72 74V48l24 18 24-18v26L96 92"/><path fill="#c5221f" d="M52 51v8l20 15V48l-5.6-4.2c-5.94-4.45-14.4-.22-14.4 7.2"/></svg></i>
+            </span>
+            <span class="x"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true" width="24" height="24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></span>
+        </span>
+    </button>
+</div>
 <div class="toast glass" id="toast" role="status"></div>
 
 <script src="manifest.js"></script>
@@ -649,11 +732,17 @@ const PROCESS = [
         return '<a class="soc-' + x[0] + '" href="' + esc(x[1]) + '" target="_blank" rel="noopener" aria-label="' + x[2] + '">' + (x[0] === 'mail' ? GMAIL_SVG : ICONS[x[0]]) + '</a>';
     }).join('');
 
-    /* ---------- Floating Instagram + Email buttons ---------- */
+    /* ---------- Floating contact button (WhatsApp / Instagram / Email) ---------- */
     (function () {
-        var ig = $('#fab-ig'), ml = $('#fab-mail');
-        if (SITE.instagram) { ig.href = SITE.instagram; ig.hidden = false; }
-        if (SITE.email) { ml.href = mailHref(); ml.target = '_blank'; ml.rel = 'noopener'; ml.hidden = false; }
+        var dock = $('#fabdock'), btn = $('#fab-launch');
+        var ig = $('#fab-ig'), ml = $('#fab-mail'), mig = $('#mi-ig'), mml = $('#mi-mail');
+        if (SITE.instagram) { ig.href = SITE.instagram; } else { ig.hidden = true; mig.hidden = true; }
+        if (SITE.email) { ml.href = mailHref(); } else { ml.hidden = true; mml.hidden = true; }
+        function set(o) { dock.classList.toggle('open', o); btn.setAttribute('aria-expanded', o ? 'true' : 'false'); }
+        btn.addEventListener('click', function () { set(!dock.classList.contains('open')); });
+        document.addEventListener('click', function (e) { if (!dock.contains(e.target)) set(false); });
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape') set(false); });
+        dock.querySelectorAll('.fab-opt').forEach(function (a) { a.addEventListener('click', function () { setTimeout(function () { set(false); }, 200); }); });
     })();
 
     /* ---------- Portfolio: Shorts, Long videos, Designs ---------- */
@@ -833,10 +922,11 @@ const PROCESS = [
         rows.push(row); soundRow = rows[0];
         var base = (id === 'shorts') ? Math.min(2, row.cards.length - 1) : Math.floor((row.cards.length - 1) / 2);
         function pickStart() {                                   // start card: no empty gap on the left side
-            var W = el.clientWidth, c0 = row.cards[0].card.offsetLeft, k = base;
+            if (el.scrollWidth <= el.clientWidth + 1) return row.cards[base];   // everything fits: nothing to scroll
+            var W = el.clientWidth, k = base;
             while (k < row.cards.length - 1) {
                 var c = row.cards[k].card;
-                if (c.offsetLeft - (W - c.offsetWidth) / 2 >= c0 - 1) break;
+                if (c.offsetLeft - (W - c.offsetWidth) / 2 >= 0) break;
                 k++;
             }
             return row.cards[k];
