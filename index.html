@@ -364,7 +364,7 @@ footer .brand { justify-content: center; color: var(--ink); margin-bottom: 8px; 
 .dtrack { display: flex; flex: none; width: max-content; will-change: transform; }
 .dtrack img { margin-right: 14px; }
 .dtrack.hold, .dtrack.off { animation-play-state: paused !important; }
-@keyframes dmq { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(-50%, 0, 0); } }
+@keyframes dmq { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(calc(-1 * var(--p, 1000px)), 0, 0); } }
 @media (prefers-reduced-motion: reduce) { .dtrack { animation: none !important; } }
 </style>
 </head>
@@ -677,7 +677,8 @@ const PROCESS = [
        - only a few videos play at the same time (phone 3, computer 5)
        - videos far away are unloaded, the ones coming next are prepared early
        - square or wide videos keep their real shape                                  */
-    var CAP = window.matchMedia('(max-width: 719px)').matches ? 2 : 3;
+    var PHONE = window.matchMedia('(max-width: 719px)').matches;
+    var CAPMAX = PHONE ? 4 : 7, CAP = PHONE ? 3 : 4, capTry = CAPMAX;
     var SAVE = !!(navigator.connection && navigator.connection.saveData);
     var HAS_IO = ('IntersectionObserver' in window);
     var RATIO_HINT = { "short-02.mp4": [720, 800], "short-05.mp4": [720, 1270], "short-06.mp4": [720, 720], "short-07.mp4": [720, 720], "short-09.mp4": [720, 720] };
@@ -714,6 +715,31 @@ const PROCESS = [
     document.addEventListener('visibilitychange', function () {
         if (document.hidden) vids.forEach(function (o) { o.v.pause(); }); else schedule();
     });
+
+
+    /* Smart limit: if the device drops frames, play one video less; if it stays smooth, allow one more */
+    (function () {
+        var seen = new Map(), calm = 0;
+        setInterval(function () {
+            if (document.hidden) return;
+            var tot = 0, drop = 0, n = 0;
+            vids.forEach(function (o) {
+                var v = o.v; if (v.paused || !v.getVideoPlaybackQuality) { seen.delete(v); return; }
+                var q = v.getVideoPlaybackQuality(), p = seen.get(v);
+                seen.set(v, { t: q.totalVideoFrames, d: q.droppedVideoFrames });
+                if (!p) return;                                  // first look at a new video: only note it
+                tot += q.totalVideoFrames - p.t; drop += q.droppedVideoFrames - p.d; n++;
+            });
+            if (n < 2 || tot < 40) return;
+            var r = drop / tot;
+            if (r > 0.10) { calm = 0; if (CAP > 2) { CAP--; capTry = CAP; schedule(); } }
+            else if (r < 0.02) {
+                calm++;
+                if (CAP < capTry && calm >= 3) { CAP++; calm = 0; schedule(); }
+                else if (CAP >= capTry && capTry < CAPMAX && calm >= 20) { capTry++; calm = 0; }
+            } else calm = 0;
+        }, 2000);
+    })();
 
     function buildVideoRow(id, files, dir) {
         var el = $('#row-' + id), blk = $('#blk-' + id);
@@ -765,10 +791,19 @@ const PROCESS = [
         });
         dragScroll(el);
         rows.push(row); soundRow = rows[0];
-        var k0 = (id === 'shorts') ? Math.min(2, row.cards.length - 1) : Math.floor((row.cards.length - 1) / 2);
+        var base = (id === 'shorts') ? Math.min(2, row.cards.length - 1) : Math.floor((row.cards.length - 1) / 2);
+        function pickStart() {                                   // start card: no empty gap on the left side
+            var W = el.clientWidth, c0 = row.cards[0].card.offsetLeft, k = base;
+            while (k < row.cards.length - 1) {
+                var c = row.cards[k].card;
+                if (c.offsetLeft - (W - c.offsetWidth) / 2 >= c0 - 1) break;
+                k++;
+            }
+            return row.cards[k];
+        }
         function placeStart() {                                  // until the person touches the row, keep the start card in the center
             if (row.touched) return;
-            var o = row.cards[k0];
+            var o = pickStart();
             el.scrollTo({ left: o.card.offsetLeft - (el.clientWidth - o.card.offsetWidth) / 2, behavior: 'instant' });
             setActive(row, o);
         }
@@ -790,7 +825,7 @@ const PROCESS = [
         var el = $('#row-designs'), blk = $('#blk-designs');
         if (!list.length) { blk.querySelector('.rowbox').innerHTML = '<div class="soon">Coming soon.</div>'; return; }
         var track = document.createElement('div'); track.className = 'dtrack'; el.appendChild(track);
-        [0, 1].forEach(function (copy) {
+        [0, 1, 2].forEach(function (copy) {
             list.forEach(function (d) {
                 var im = new Image(); im.src = 'designs/' + d.f; im.alt = copy ? '' : 'Design by Growuplight';
                 if (d.w && d.h) { im.width = d.w; im.height = d.h; }
@@ -802,14 +837,16 @@ const PROCESS = [
         var still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
         function tx() { var t = getComputedStyle(track).transform; return (t && t !== 'none') ? new DOMMatrix(t).m41 : 0; }
         function start(phase) {                                  // slide from this point (0 to 1) of one full loop
-            P = track.offsetWidth / 2; if (!P || still) return;
+            P = track.offsetWidth / 3; if (!P) return;
+            el.scrollLeft = P; if (still) return;                // start in the middle copy, so the row can go left and right
+            track.style.setProperty('--p', P + 'px');
             track.style.animation = 'none'; void track.offsetWidth;
             track.style.animation = 'dmq ' + (P / SPEED).toFixed(2) + 's linear ' + (-(phase * P / SPEED)).toFixed(2) + 's infinite';
         }
         function settle() {                                      // keep the place where the person left the row, then slide again
             if (!P) { start(0); return; }
             var x = el.scrollLeft - tx(); x = ((x % P) + P) % P;
-            el.scrollLeft = 0; start(x / P);
+            start(x / P);
         }
         function grab() { hold = true; track.classList.add('hold'); }
         function drop() { if (!hold) return; hold = false; track.classList.remove('hold'); settle(); }
